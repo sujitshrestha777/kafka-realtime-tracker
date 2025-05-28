@@ -1,6 +1,7 @@
-
+// consumer.ts
 import { kafka } from './client';
 import { Server } from 'socket.io';
+
 
 export const setupConsumerHome = async (io: Server) => {
 

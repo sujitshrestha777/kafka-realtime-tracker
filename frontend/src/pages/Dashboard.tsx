@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Title,
   Paper,
@@ -30,71 +30,80 @@ export default function Dashboard() {
   const [homeConsumerActive, setHomeConsumerActive] = useState(false);
   const [otherConsumerActive, setOtherConsumerActive] = useState(false);
 
+  // Memoized handlers to prevent unnecessary re-renders
+  const handleHomePageVisit = useCallback((data: Visit) => {
+    console.log("Home page visit data:", data);
+    setHomePageVisits((prev) => [data, ...prev.slice(0, 99)]); // Limit to 100 items
+    setHomeConsumerActive(true);
+    setTimeout(() => setHomeConsumerActive(false), 2000);
+  }, []);
+
+  const handleAboutPageVisit = useCallback((data: Visit) => {
+    console.log("About page visit data:", data);
+    setOtherPageVisits((prev) => [data, ...prev.slice(0, 99)]); // Limit to 100 items
+    setOtherConsumerActive(true);
+    setTimeout(() => setOtherConsumerActive(false), 2000);
+  }, []);
+
   useEffect(() => {
     const userId = sessionStorage.getItem("userId_kafka");
     if (userId) setUid(userId);
 
-    socket.on("home-page-visit", (data: Visit) => {
-      console.log("Home page visit data:", data);
-      setHomePageVisits((prev) => [data, ...prev]);
-      setHomeConsumerActive(true);
-      setTimeout(() => setHomeConsumerActive(false), 2000);
-    });
+    // Add event listeners
+    socket.on("home-page-visit", handleHomePageVisit);
+    aboutSocket.on("about-page-visit", handleAboutPageVisit);
 
-    aboutSocket.on("about-page-visit", (data: Visit) => {
-      console.log(" About page visit data:", data);
-      setOtherPageVisits((prev) => [data, ...prev]);
-      setOtherConsumerActive(true);
-      setTimeout(() => setOtherConsumerActive(false), 2000);
-    });
-
+    // Cleanup function
     return () => {
-      socket.off("home-page-visit");
-      aboutSocket.off("about-page-visit");
+      socket.off("home-page-visit", handleHomePageVisit);
+      aboutSocket.off("about-page-visit", handleAboutPageVisit);
     };
-  }, []);
+  }, [handleHomePageVisit, handleAboutPageVisit]);
 
-  const renderVisits = (visits: Visit[], title: string, color: string) => (
-    <ScrollArea h={350} type="auto">
-      <Stack gap="sm">
-        {visits.map((v, i) => (
-          <Paper
-            key={i}
-            withBorder
-            p="sm"
-            radius="sm"
-            bg={color === "blue" ? "blue.0" : "green.0"}
-          >
-            <Group justify="space-between">
-              <Text size="sm" fw={600}>
-                User: {v.userId}
+  const renderVisits = useCallback(
+    (visits: Visit[], title: string, color: string) => (
+      <ScrollArea h={350} type="auto">
+        <Stack gap="sm">
+          {visits.map((v, i) => (
+            <Paper
+              key={`${v.userId}-${v.timestamp}-${i}`} // Better key generation
+              withBorder
+              p="sm"
+              radius="sm"
+              bg={color === "blue" ? "blue.0" : "green.0"}
+            >
+              <Group justify="space-between">
+                <Text size="sm" fw={600}>
+                  User: {v.userId}
+                </Text>
+                <Text size="xs" c="dimmed">
+                  {new Date(v.timestamp).toLocaleTimeString()}
+                </Text>
+              </Group>
+              <Text size="sm" mt={5}>
+                visited{" "}
+                <Badge color={color} size="sm">
+                  {v.page}
+                </Badge>
               </Text>
-              <Text size="xs" c="dimmed">
-                {new Date(v.timestamp).toLocaleTimeString()}
+              {v.socketId && (
+                <Text size="xs" c="dimmed" mt={2}>
+                  Socket: {v.socketId.substring(0, 8)}...
+                </Text>
+              )}
+            </Paper>
+          ))}
+          {visits.length === 0 && (
+            <Center h={100}>
+              <Text size="sm" c="dimmed">
+                No {title.toLowerCase()} visits yet
               </Text>
-            </Group>
-            <Text size="sm" mt={5}>
-              visited{" "}
-              <Badge color={color} size="sm">
-                {v.page}
-              </Badge>
-            </Text>
-            {v.socketId && (
-              <Text size="xs" c="dimmed" mt={2}>
-                Socket: {v.socketId.substring(0, 8)}...
-              </Text>
-            )}
-          </Paper>
-        ))}
-        {visits.length === 0 && (
-          <Center h={100}>
-            <Text size="sm" c="dimmed">
-              No {title.toLowerCase()} visits yet
-            </Text>
-          </Center>
-        )}
-      </Stack>
-    </ScrollArea>
+            </Center>
+          )}
+        </Stack>
+      </ScrollArea>
+    ),
+    []
   );
 
   return (
@@ -106,7 +115,7 @@ export default function Dashboard() {
       <Text size="sm" c="dimmed" mb="lg" ta="center">
         Your session ID:{" "}
         <Badge color="blue" size="lg" variant="light">
-          {uid}
+          {uid || "Not set"}
         </Badge>
       </Text>
 
@@ -149,7 +158,7 @@ export default function Dashboard() {
           <Card shadow="md" padding="md" radius="md" withBorder>
             <Group justify="space-between" mb="md">
               <Title order={4} c="green">
-                📄 About page
+                📄 About Page
               </Title>
               <Badge color="green" variant="filled">
                 {otherPageVisits.length}
@@ -159,7 +168,7 @@ export default function Dashboard() {
               Partition 1 • About page
             </Text>
             <Divider mb="sm" />
-            {renderVisits(otherPageVisits, "Other Page", "green")}
+            {renderVisits(otherPageVisits, "About Page", "green")}
           </Card>
         </Grid.Col>
       </Grid>
@@ -180,7 +189,7 @@ export default function Dashboard() {
               {otherPageVisits.length}
             </Text>
             <Text ta="center" size="sm" c="dimmed">
-              Other Visits
+              About Visits
             </Text>
           </div>
           <div>
