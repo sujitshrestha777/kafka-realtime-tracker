@@ -1,14 +1,12 @@
-⚡ Kafka-Powered Real-Time Analytics Pipeline
+# ⚡ Kafka-Powered Real-Time Analytics Pipeline
 A production-ready demonstration of Apache Kafka for real-time event streaming, featuring visitor tracking with partitioned consumers, WebSocket integration, and a live analytics dashboard.
 
-🎯 Kafka Concepts Demonstrated
-
-Event-Driven Architecture: Page visits as Kafka events
-Topic Partitioning: Route-based partitioning (/home → partition 0, /about → partition 1)
-Producer-Consumer Pattern: Single producer, multiple specialized consumers
-Real-time Processing: Stream processing with immediate dashboard updates
-Consumer Groups: Scalable message consumption with pages-group
-
+## 🎯 Kafka Concepts Demonstrated
+- **Event-Driven Architecture**: Page visits as Kafka events
+- **Topic Partitioning**: Route-based partitioning (/home → partition 0, /about → partition 1)
+- **Producer-Consumer Pattern**: Single producer, multiple specialized consumers
+- **Real-time Processing**: Stream processing with immediate dashboard updates
+- **Consumer Groups**: Scalable message consumption with pages-group
 ## 📸 Demo
 
 > 🎥 [Watch Demo Video](./assets/demo-video.mp4)
